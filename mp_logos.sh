@@ -43,7 +43,7 @@ f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
   [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
 }
 
-f_process_channel logo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
+f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
   local CHANNEL_PATH LOGO_FILE
   if [[ -z "$FILE" || -z "${CHANNEL[*]}" ]] ; then
     f_log "Fehler: Logo ($FILE) oder Kanal (${CHANNEL[*]}) nicht definiert!"

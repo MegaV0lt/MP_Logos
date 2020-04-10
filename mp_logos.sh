@@ -27,6 +27,7 @@ PROV='Astra 19.2E'                     # Provider (Siehe LogoMapping.xml)
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
 CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
+LOGGER='logger'                        # Logger oder auskommentieren für 'echo'
 LOGFILE="/var/log/${SELF_NAME%.*}.log" # Log-Datei 
 MAXLOGSIZE=$((1024*50))                # Log-Datei: Maximale Größe in Byte
 printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
@@ -34,11 +35,15 @@ printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
 
 ### Funktionen
 f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
-  logger --stderr --tag "$SELF_NAME" "$*"
+  if [[ -n "$LOGGER" ]] ; then
+    logger --stderr --tag "$SELF_NAME" "$*"
+  else
+    echo "$*"
+  fi
   [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
 }
 
-f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
+f_process_channel logo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
   local CHANNEL_PATH LOGO_FILE
   if [[ -z "$FILE" || -z "${CHANNEL[*]}" ]] ; then
     f_log "Fehler: Logo ($FILE) oder Kanal (${CHANNEL[*]}) nicht definiert!"

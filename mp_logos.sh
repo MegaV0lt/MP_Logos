@@ -34,7 +34,7 @@ printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
 
 ### Funktionen
 f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
-  logger -s -t "$SELF_NAME" "$*"
+  logger --stderr --tag "$SELF_NAME" "$*"
   [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
 }
 
@@ -123,7 +123,7 @@ f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf $PROV"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider in der Kanalliste gefunden"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
-  FILESIZE="$(stat -c %s "$LOGFILE")"
+  FILESIZE="$(stat --format=%s "$LOGFILE")"
   [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"
 fi
 

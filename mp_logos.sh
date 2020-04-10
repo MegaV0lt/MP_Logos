@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# Skript zum verlinken der Mediaportal-Kanallogos
+
+# Man benötigt das folgende GIT lokal auf der Festplatte:
+# https://github.com/Jasmeet181/mediaportal-de-logos
+
+# Die Dateinamen passen nicht zum VDR-Schema. Darum liest das Skript
+# die im GIT liegende 'LogoMapping.xml' aus um die Logos dann passend zu 
+# verlinken. Im Logoverzeichnis des Skins liegen dann nur Symlinks.
+
+# Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
+# Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
+# Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
+
+# Wenn keine Logdatei benötigt wird, dann einfach LOGFILE auskommentieren
+VERSION=200408
+
+### Variablen
+LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlatPlus
+MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
+LOGO_VARIANT='Simple'  # Logos für dunklen oder hellen Hintergrund ('Simple' oder 'Dark')
+MP_LOGOS="TV/${LOGO_VARIANT}"          # Hier sind die TV-Logos drin
+MP_LOGOS_R="Radio/${LOGO_VARIANT}"     # Hier sind die Radio-Logos drin
+MAPPING='LogoMapping.xml'              # Mapping der Sender zu den Logos
+PROV='Astra 19.2E'                     # Provider (Siehe LogoMapping.xml)
+SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
+SELF_NAME="${SELF##*/}"
+CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
+LOGFILE="/var/log/${SELF_NAME%.*}.log" # Log-Datei 
+MAXLOGSIZE=$((1024*50))                # Log-Datei: Maximale Größe in Byte
+printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
+#TEMPDIR=$(mktemp --directory)          # Temp-Dir im RAM
+
+### Funktionen
+f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
+  logger -s -t "$SELF_NAME" "$*"
+  [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
+}
+
+f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
+  local CHANNEL_PATH LOGO_FILE
+  if [[ -z "$FILE" || -z "${CHANNEL[*]}" ]] ; then
+    f_log "Fehler: Logo ($FILE) oder Kanal (${CHANNEL[*]}) nicht definiert!"
+    exit 1
+  fi
+  case "$MODE" in
+    'TV') LOGO_FILE="${MP_LOGODIR}/${MP_LOGOS}/${FILE}" ;;
+    'Radio') LOGO_FILE="${MP_LOGODIR}/${MP_LOGOS_R}/${FILE}" ;;
+    *) f_log '!>> $MODE ist nicht gesetzt!' ;;
+  esac
+
+  for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
+    channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
+    channel="${channel,,}.png"         # Alles in kleinbuchstaben und mit .png
+    if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
+      if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
+        CHANNEL_PATH="${channel%%/*}"  # Der Teil vor dem lezten /
+        mkdir --parent "${LOGODIR}/${CHANNEL_PATH}"
+      fi
+      f_log "Verlinke neue Datei ($FILE) mit $channel"
+      rm "${LOGODIR}/${channel}" >/dev/null 2>&1
+      ln --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}"  # Symlink erstellen
+    fi
+    find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
+  done
+}
+
+### Start
+[[ -n "$LOGFILE" ]] && f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
+[[ ! -e "$MP_LOGODIR" ]] && f_log "==> Logo-Dir not found! (${MP_LOGODIR})" && exit 1
+[[ ! -e "$LOGODIR" ]] && f_log "==> Logo-Dir not found! (${LOGODIR})" && exit 1
+
+# Kanallogos (GIT) aktualisieren
+cd "$MP_LOGODIR" || exit 1
+git pull >> "${LOGFILE:-/dev/null}"
+
+mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
+mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
+for i in "${!channelsconf[@]}" ; do
+  channelsconf[i]="${channelsconf[i]%%;*}"  # Nur den Kanalnamen
+done
+shopt -s extglob
+
+for line in "${mapping[@]}" ; do
+  case $line in
+    *'<TV>'*) MODE='TV' ;;                     # TV
+    *'<Radio>'*) MODE='Radio' ;;               # Radio
+    *'<Channel>'*)                             # Neuer Kanal
+      unset -v 'ITEM_NOPROV' 'ITEM' 'PROVIDER' 'FILE'
+    ;;
+    *'Item'*'/>'*)                             # Item (Kanal) ohne Provider
+      ITEM_NOPROV="${line#*Name=\"}" ; ITEM_NOPROV="${ITEM_NOPROV%\"*}"
+      if [[ "${channelsconf[*]}" =~ $ITEM_NOPROV ]] ; then
+        CHANNEL+=("$ITEM_NOPROV")              # Kanal zur Liste
+        ((NOPROV+=1))
+      fi
+    ;;
+    *'Item Name'*'">'*)                        # Item (Kanal)
+      ITEM="${line#*Name=\"}" ; ITEM="${ITEM%\"*}"
+    ;;
+    *'<Provider>'*)                            # Ein oder mehrere Provider
+      PROVIDER="${line#*<Provider>}" ; PROVIDER="${PROVIDER%</Provider>*}"
+      [[ "$PROVIDER" == "$PROV" ]] && CHANNEL+=("$ITEM")
+    ;;
+    *'<File>'*)                                # Logo-Datei
+      FILE="${line#*<File>}" ; FILE="${FILE%</File>*}"
+      ((LOGO+=1))
+    ;;
+    *'</Channel>'*)                            # Kanal-Ende
+      if [[ -z "${CHANNEL[*]}" ]] ; then
+        ((NO_CHANNEL+=1))
+      else
+        f_process_channellogo                  # Logo verlinken
+      fi
+      unset -v 'CHANNEL'
+    ;;
+    *) ;;
+  esac
+done
+
+f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf $PROV"
+f_log "==> ${NOPROV:-0} Kanäle ohne Provider in der Kanalliste gefunden"
+
+if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
+  FILESIZE="$(stat -c %s "$LOGFILE")"
+  [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"
+fi
+
+#rm -rf "$TEMPDIR"
+
+exit

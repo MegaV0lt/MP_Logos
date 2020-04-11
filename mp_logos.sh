@@ -14,14 +14,12 @@
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
 
 # Wenn keine Logdatei benötigt wird, dann einfach LOGFILE auskommentieren
-VERSION=200408
+VERSION=200411
 
 ### Variablen
 LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlatPlus
 MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
 LOGO_VARIANT='Simple'  # Logos für dunklen oder hellen Hintergrund ('Simple' oder 'Dark')
-MP_LOGOS="TV/${LOGO_VARIANT}"          # Hier sind die TV-Logos drin
-MP_LOGOS_R="Radio/${LOGO_VARIANT}"     # Hier sind die Radio-Logos drin
 MAPPING='LogoMapping.xml'              # Mapping der Sender zu den Logos
 PROV='Astra 19.2E'                     # Provider (Siehe LogoMapping.xml)
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
@@ -46,15 +44,14 @@ f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
   local CHANNEL_PATH LOGO_FILE
   if [[ -z "$FILE" || -z "${CHANNEL[*]}" ]] ; then
-    f_log "Fehler: Logo ($FILE) oder Kanal (${CHANNEL[*]}) nicht definiert!"
+    f_log "Fehler: Logo (${FILE}) oder Kanal (${CHANNEL[*]}) nicht definiert!"
     exit 1
   fi
-  case "$MODE" in
-    'TV') LOGO_FILE="${MP_LOGODIR}/${MP_LOGOS}/${FILE}" ;;
-    'Radio') LOGO_FILE="${MP_LOGODIR}/${MP_LOGOS_R}/${FILE}" ;;
-    *) f_log '!>> $MODE ist nicht gesetzt!' ;;
-  esac
-
+  if [[ -n "$MODE" ]] ; then 
+    LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
+  else  
+    f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 
+  fi
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
     channel="${channel,,}.png"         # Alles in kleinbuchstaben und mit .png
@@ -63,8 +60,8 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
         CHANNEL_PATH="${channel%%/*}"  # Der Teil vor dem lezten /
         mkdir --parent "${LOGODIR}/${CHANNEL_PATH}"
       fi
-      f_log "Verlinke neue Datei ($FILE) mit $channel"
-      rm "${LOGODIR}/${channel}" >/dev/null 2>&1
+      f_log "Verlinke neue Datei (${FILE}) mit $channel"
+      rm "${LOGODIR}/${channel}" &>/dev/null
       ln --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}"  # Symlink erstellen
     fi
     find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen

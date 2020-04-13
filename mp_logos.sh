@@ -14,7 +14,7 @@
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
 
 # Wenn keine Logdatei benötigt wird, dann einfach LOGFILE auskommentieren
-VERSION=200411
+VERSION=200413
 
 ### Variablen
 LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlatPlus
@@ -33,25 +33,19 @@ printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
 
 ### Funktionen
 f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
-  if [[ -n "$LOGGER" ]] ; then
-    logger --stderr --tag "$SELF_NAME" "$*"
-  else
-    echo "$*"
-  fi
+  [[ -n "$LOGGER" ]] && { "$LOGGER" --stderr --tag "$SELF_NAME" "$*" ;} || echo "$*"
   [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
 }
 
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
   local CHANNEL_PATH LOGO_FILE
   if [[ -z "$FILE" || -z "${CHANNEL[*]}" ]] ; then
-    f_log "Fehler: Logo (${FILE}) oder Kanal (${CHANNEL[*]}) nicht definiert!"
+    f_log "Fehler: Logo (${FILE:-NULL}) oder Kanal (${CHANNEL[*]:-NULL}) nicht definiert!"
     exit 1
   fi
-  if [[ -n "$MODE" ]] ; then 
-    LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
-  else  
-    f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 
-  fi
+  [[ -z "$MODE" ]] && { f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 ;}
+  LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
+    
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
     channel="${channel,,}.png"         # Alles in kleinbuchstaben und mit .png
@@ -66,6 +60,11 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     fi
     find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
   done
+}
+
+f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durchsuchende Array
+  for e in "$@:2" ; do [[ "$e" = "$1" ]] && return 0 ; done
+  return 1
 }
 
 ### Start
@@ -93,7 +92,7 @@ for line in "${mapping[@]}" ; do
     ;;
     *'Item'*'/>'*)                             # Item (Kanal) ohne Provider
       ITEM_NOPROV="${line#*Name=\"}" ; ITEM_NOPROV="${ITEM_NOPROV%\"*}"
-      if [[ "${channelsconf[*]}" =~ $ITEM_NOPROV ]] ; then
+      if f_element_in "$ITEM_NOPROV" "${channelsconf[@]}" ; then
         CHANNEL+=("$ITEM_NOPROV")              # Kanal zur Liste
         ((NOPROV+=1))
       fi

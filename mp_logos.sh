@@ -54,7 +54,7 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
         CHANNEL_PATH="${channel%%/*}"  # Der Teil vor dem lezten /
         mkdir --parent "${LOGODIR}/${CHANNEL_PATH}"
       fi
-      f_log "Verlinke neue Datei (${FILE}) mit $channel"
+      f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
       rm "${LOGODIR}/${channel}" &>/dev/null
       ln --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}"  # Symlink erstellen
     fi
@@ -122,6 +122,7 @@ done
 
 f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf $PROV"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider in der Kanalliste gefunden"
+f_log "==> ${N_LOGO:-0} neue oder aktualisierte Logos verlinkt"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE")"

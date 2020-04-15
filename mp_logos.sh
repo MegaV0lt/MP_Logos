@@ -21,7 +21,8 @@ LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlat
 MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
 LOGO_VARIANT='Simple'  # Logos für dunklen oder hellen Hintergrund ('Simple' oder 'Dark')
 MAPPING='LogoMapping.xml'              # Mapping der Sender zu den Logos
-PROV='Astra 19.2E'                     # Provider (Siehe LogoMapping.xml)
+# Provider oder auskommentieren wenn der Provider ignoriert werden soll
+PROV='Astra 19.2E'                     # Siehe LogoMapping.xml
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
 CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
@@ -102,7 +103,7 @@ for line in "${mapping[@]}" ; do
     ;;
     *'<Provider>'*)                            # Ein oder mehrere Provider
       PROVIDER="${line#*<Provider>}" ; PROVIDER="${PROVIDER%</Provider>*}"
-      [[ "$PROVIDER" == "$PROV" ]] && CHANNEL+=("$ITEM")
+      [[ "$PROVIDER" == "$PROV" || -z "$PROV" ]] && CHANNEL+=("$ITEM")
     ;;
     *'<File>'*)                                # Logo-Datei
       FILE="${line#*<File>}" ; FILE="${FILE%</File>*}"
@@ -120,7 +121,7 @@ for line in "${mapping[@]}" ; do
   esac
 done
 
-f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf $PROV"
+f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf ${PROV:-KEIN_PROVIDER}"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider in der Kanalliste gefunden"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Logos verlinkt"
 

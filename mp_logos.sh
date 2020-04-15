@@ -14,7 +14,7 @@
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
 
 # Wenn keine Logdatei benötigt wird, dann einfach LOGFILE auskommentieren
-VERSION=200413
+VERSION=200415
 
 ### Variablen
 LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlatPlus

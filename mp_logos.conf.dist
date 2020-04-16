@@ -1,0 +1,38 @@
+########################### KONFIGURATION zum MP_LOGOS Skript ###########################
+#
+# Alle Anpassungen zum Skript, kann man hier und im Skript am Anfang der Datei nachlesen.
+#
+#########################################################################################
+
+### Hinweis zum ausfüllen: Wenn Variablen ($) verwendet werden,
+### dann in doppelten " ansonsten können einfache ' benutzt werden
+
+# 'LOGODIR' ist der Ordner, wo die Symlinks angelegt werden und das Skin (Z. B. SkinflatPlus)
+# die Kanallogos lädt. Verzeichnis ohne abschließendes '/'
+LOGODIR='/usr/local/src/_div/flatpluslogos'  # Logos für VDR-Skin
+
+# 'MP_LOGODIR' ist der Ordner, wo die Mediaportal-Kanallogos liegen (GIT)
+MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
+
+# Kanallogos liegen in den varianten 'Simple' für dunkle Hintergründe und
+# 'Dark' für helle Hintergründe vor.
+LOGO_VARIANT='Simple'
+
+# Mapping der Sender zu den Logos. Datei liegt dem GIT bei. Keine änderung nötig
+MAPPING='LogoMapping.xml'
+
+# Provider oder auskommentieren wenn der Provider ignoriert werden soll.
+# Beispiele: 'Astra 19.2E', 'MagentaTV', 'Terrestrial München', 'Vodafone Kabel München'
+PROV='Astra 19.2E'                     # Siehe LogoMapping.xml
+
+# Kanalliste vom VDR. Wird für Kanäle verwendet, die keinem Provider zugeornet sind
+CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
+
+# Ausgaben des Skripts via logger oder echo, wenn die Variable auskommentiert ist
+LOGGER='logger'                        # Logger oder auskommentieren für 'echo'
+
+# Logdatei. Wenn nicht gewünscht einfach auskommentiern
+LOGFILE="/var/log/${SELF_NAME%.*}.log" # Log-Datei
+
+# Maximale Größe der Logdatei. Bei überschreiten wird diese vom Skriot umbenannt in *.old
+MAXLOGSIZE=$((1024*50))                # Log-Datei: Maximale Größe in Byte

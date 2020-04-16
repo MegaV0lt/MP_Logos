@@ -6,29 +6,20 @@
 # https://github.com/Jasmeet181/mediaportal-de-logos
 
 # Die Dateinamen passen nicht zum VDR-Schema. Darum liest das Skript
-# die im GIT liegende 'LogoMapping.xml' aus um die Logos dann passend zu 
+# die im GIT liegende 'LogoMapping.xml' aus um die Logos dann passend zu
 # verlinken. Im Logoverzeichnis des Skins liegen dann nur Symlinks.
 
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
+VERSION=200416
 
-# Wenn keine Logdatei benötigt wird, dann einfach LOGFILE auskommentieren
-VERSION=200415
+# Sämtliche Einstellungen werden in der *.conf vorgenommen.
+# ---> Bitte ab hier nichts mehr ändern! <---
 
 ### Variablen
-LOGODIR='/usr/local/src/_div/flatpluslogos'                # Logos für SkinFlatPlus
-MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
-LOGO_VARIANT='Simple'  # Logos für dunklen oder hellen Hintergrund ('Simple' oder 'Dark')
-MAPPING='LogoMapping.xml'              # Mapping der Sender zu den Logos
-# Provider oder auskommentieren wenn der Provider ignoriert werden soll
-PROV='Astra 19.2E'                     # Siehe LogoMapping.xml
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
-CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
-LOGGER='logger'                        # Logger oder auskommentieren für 'echo'
-LOGFILE="/var/log/${SELF_NAME%.*}.log" # Log-Datei 
-MAXLOGSIZE=$((1024*50))                # Log-Datei: Maximale Größe in Byte
 printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
 #TEMPDIR=$(mktemp --directory)          # Temp-Dir im RAM
 
@@ -46,7 +37,7 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   fi
   [[ -z "$MODE" ]] && { f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 ;}
   LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
-    
+
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
     channel="${channel,,}.png"         # Alles in kleinbuchstaben und mit .png
@@ -70,6 +61,24 @@ f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durch
 
 ### Start
 [[ -n "$LOGFILE" ]] && f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
+
+# Konfigurationsdatei laden [Wenn Skript=mp_logos.sh Konfig=mp_logos.conf]
+if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
+  # Suche Konfig im aktuellen Verzeichnis, im Verzeichnis des Skripts und im eigenen etc
+  CONFIG_DIRS=('.' "${SELF%/*}" "${HOME}/etc" "${0%/*}") ; CONFIG_NAME="${SELF_NAME%.*}.conf"
+  for dir in "${CONFIG_DIRS[@]}" ; do
+    CONFIG="${dir}/${CONFIG_NAME}"
+    if [[ -f "$CONFIG" ]] ; then
+      source "$CONFIG" ; CONFLOADED='Gefundene'
+      break  # Die erste gefundene Konfiguration wird verwendet
+    fi
+  done
+  if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde nicht gefunden
+    f_log "Fehler! Keine Konfigurationsdatei gefunden! \"${CONFIG_DIRS[*]}\")" >&2
+    #f_help
+  fi
+fi
+
 [[ ! -e "$MP_LOGODIR" ]] && f_log "==> Logo-Dir not found! (${MP_LOGODIR})" && exit 1
 [[ ! -e "$LOGODIR" ]] && f_log "==> Logo-Dir not found! (${LOGODIR})" && exit 1
 
@@ -122,7 +131,7 @@ for line in "${mapping[@]}" ; do
 done
 
 f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf ${PROV:-KEIN_PROVIDER}"
-f_log "==> ${NOPROV:-0} Kanäle ohne Provider in der Kanalliste gefunden"
+f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Logos verlinkt"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß

@@ -60,7 +60,7 @@ f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durch
 }
 
 ### Start
-[[ -n "$LOGFILE" ]] && f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
+f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
 
 # Testen, ob Konfiguration angegeben wurde (-c …)
 while getopts ":c:" opt ; do
@@ -94,6 +94,7 @@ if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
   fi
 fi
 
+f_log "$CONFLOADED Konfiguration: ${CONFIG}"
 [[ ! -e "$MP_LOGODIR" ]] && f_log "==> Logo-Dir not found! (${MP_LOGODIR})" && exit 1
 [[ ! -e "$LOGODIR" ]] && f_log "==> Logo-Dir not found! (${LOGODIR})" && exit 1
 

@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200416
+VERSION=200417
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -61,6 +61,21 @@ f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durch
 
 ### Start
 [[ -n "$LOGFILE" ]] && f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
+
+# Testen, ob Konfiguration angegeben wurde (-c …)
+while getopts ":c:" opt ; do
+  case "$opt" in
+    c) CONFIG="$OPTARG"
+       if [[ -f "$CONFIG" ]] ; then  # Konfig wurde angegeben und existiert
+         source "$CONFIG" ; CONFLOADED='Angegebene' ; break
+       else
+         f_log "Fehler! Die angegebene Konfigurationsdatei fehlt! (\"${CONFIG}\")"
+         exit 1
+       fi
+    ;;
+    ?) ;;
+  esac
+done
 
 # Konfigurationsdatei laden [Wenn Skript=mp_logos.sh Konfig=mp_logos.conf]
 if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen

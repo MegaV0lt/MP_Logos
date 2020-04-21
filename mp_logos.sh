@@ -146,9 +146,9 @@ for line in "${mapping[@]}" ; do
   esac
 done
 
-f_log "==> ${NO_CHANNEL:-0} von ${LOGO:-0} Logos ohne Kanal auf ${PROV:-KEIN_PROVIDER}"
+[[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider $PROV"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
-f_log "==> ${N_LOGO:-0} neue oder aktualisierte Logos verlinkt"
+f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE")"

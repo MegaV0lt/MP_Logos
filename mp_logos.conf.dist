@@ -14,7 +14,7 @@ LOGODIR='/usr/local/src/_div/flatpluslogos'  # Logos für VDR-Skin
 # 'MP_LOGODIR' ist der Ordner, wo die Mediaportal-Kanallogos liegen (GIT)
 MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
 
-# Kanallogos liegen in den varianten 'Simple' für dunkle Hintergründe und
+# Kanallogos liegen in den varianten 'Light' für dunkle Hintergründe und
 # 'Dark' für helle Hintergründe vor.
 LOGO_VARIANT='Simple'
 

@@ -36,7 +36,7 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     exit 1
   fi
   [[ -z "$MODE" ]] && { f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 ;}
-  LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
+  LOGO_FILE="${MP_LOGODIR}/${MODE}/_${LOGO_VARIANT}/${FILE}"
 
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen

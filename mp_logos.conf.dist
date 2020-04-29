@@ -16,7 +16,7 @@ MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
 
 # Kanallogos liegen in den varianten 'Light' für dunkle Hintergründe und
 # 'Dark' für helle Hintergründe vor.
-LOGO_VARIANT='Simple'
+LOGO_VARIANT='Light'  # Logos für dunklen Hintergrund
 
 # Mapping der Sender zu den Logos. Datei liegt dem GIT bei. Keine änderung nötig
 MAPPING='LogoMapping.xml'

@@ -99,6 +99,10 @@ if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
 fi
 
 f_log "$CONFLOADED Konfiguration: ${CONFIG}"
+if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Variable
+  f_log "!!!> Variable LOGO_VARIANT mit veralteten Wert 'Simple'!"
+  f_log "!!!> Verwende den Vorgabewert 'Light'. Bitte Konfiguration anpassen!"
+fi
 [[ ! -e "$MP_LOGODIR" ]] && f_log "==> Logo-Dir not found! (${MP_LOGODIR})" && exit 1
 [[ ! -e "$LOGODIR" ]] && f_log "==> Logo-Dir not found! (${LOGODIR})" && exit 1
 

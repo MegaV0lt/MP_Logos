@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200429
+VERSION=200502
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---

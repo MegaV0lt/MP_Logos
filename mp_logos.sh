@@ -54,7 +54,6 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
       rm "${LOGODIR}/${channel}" &>/dev/null
       ln --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}"  # Symlink erstellen
     fi
-    find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
   done
 }
 
@@ -156,6 +155,8 @@ for line in "${mapping[@]}" ; do
     *) ;;
   esac
 done
+
+find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
 [[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"

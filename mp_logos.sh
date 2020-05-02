@@ -36,7 +36,7 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     exit 1
   fi
   [[ -z "$MODE" ]] && { f_log "Fehler: Variable MODE nicht gesetzt!" ; exit 1 ;}
-  LOGO_FILE="${MP_LOGODIR}/${MODE}/.${LOGO_VARIANT}/${FILE}"
+  LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
 
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
@@ -104,8 +104,10 @@ if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Var
   f_log "!!!> Verwende den Vorgabewert 'Light'. Bitte Konfiguration anpassen!"
   LOGO_VARIANT='Light'  # Vorgabewert setzen
 fi
-[[ ! -e "$MP_LOGODIR" ]] && f_log "==> Logo-Dir not found! (${MP_LOGODIR})" && exit 1
-[[ ! -e "$LOGODIR" ]] && f_log "==> Logo-Dir not found! (${LOGODIR})" && exit 1
+LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
+[[ ! -e "$MP_LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${MP_LOGODIR})" ; exit 1 ;}
+[[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner .$LOGO_VARIANT fehlt!" ; exit 1 ;}
+[[ ! -e "$LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${LOGODIR})" ; exit 1 ;}
 
 # Kanallogos (GIT) aktualisieren
 cd "$MP_LOGODIR" || exit 1
@@ -155,7 +157,7 @@ for line in "${mapping[@]}" ; do
   esac
 done
 
-[[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider $PROV"
+[[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
 f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 

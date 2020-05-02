@@ -106,7 +106,7 @@ if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Var
 fi
 LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
 [[ ! -e "$MP_LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${MP_LOGODIR})" ; exit 1 ;}
-[[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner .$LOGO_VARIANT fehlt!" ; exit 1 ;}
+[[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 [[ ! -e "$LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${LOGODIR})" ; exit 1 ;}
 
 # Kanallogos (GIT) aktualisieren

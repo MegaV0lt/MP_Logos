@@ -16,7 +16,12 @@ MP_LOGODIR='/usr/local/src/_div/mediaportal-de-logos.git'  # GIT
 
 # Kanallogos liegen in den varianten 'Light' für dunkle Hintergründe und
 # 'Dark' für helle Hintergründe vor.
-LOGO_VARIANT='Light'  # Logos für dunklen Hintergrund
+LOGO_VARIANT='Light'                   # Logos für dunklen Hintergrund
+
+# SVG-Logos (Originale im GIT) verwenden. Wenn auf 'true' gesetzt, werden die im GIT
+# enthaltenen SVG-Logos verlinkt, sofern vorhanden. Auch 'Light' und 'Dark'-Varianten
+# werden berücksichtigt
+USE_SVG=''  # Auf 'true' setzen um SVG-Logos zu verwenden [Experimentell]
 
 # Mapping der Sender zu den Logos. Datei liegt dem GIT bei. Keine änderung nötig
 MAPPING='LogoMapping.xml'

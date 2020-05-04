@@ -117,12 +117,13 @@ if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Var
 fi
 LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
 [[ ! -e "$MP_LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${MP_LOGODIR})" ; exit 1 ;}
-[[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 [[ ! -e "$LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${LOGODIR})" ; exit 1 ;}
 
 # Kanallogos (GIT) aktualisieren
 cd "$MP_LOGODIR" || exit 1
 git pull >> "${LOGFILE:-/dev/null}"
+
+[[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 
 mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
 mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen

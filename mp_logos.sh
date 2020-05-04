@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200503
+VERSION=200504
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -40,6 +40,10 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
       LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Light 
     else
       LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*} - Dark.${EXT}"  # Dark
+      if [[ ! -e "$LOGO_FILE" ]] ; then 
+        f_log "==> Logo $LOGO_FILE nicht gefunden! Verwende 'Light'-Version."
+        LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Fallback auf Light 
+      fi  
     fi
   else  # Normaler Modus mit PNG-Logos
     LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"

@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200503
+VERSION=200504
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -30,18 +30,32 @@ f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
 }
 
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
-  local CHANNEL_PATH LOGO_FILE
+  local CHANNEL_PATH EXT LOGO_FILE
   for var in FILE CHANNEL[*] MODE ; do
     [[ -z "${!var}" ]] && { f_log "Fehler: Variable $var ist nicht gesetzt!" ; exit 1 ;}
   done
-  LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
-
+  if [[ "$USE_SVG" == 'true' ]] ; then  # Die Originalen *.svg-Logos verwenden
+    EXT='svg'  # Erweiterung der Logo-Datei
+    if [[ "$LOGO_VARIANT" =~ 'Light' ]] ; then
+      LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Light 
+    else
+      LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*} - Dark.${EXT}"  # Dark
+      if [[ ! -e "$LOGO_FILE" ]] ; then 
+        f_log "==> Logo $LOGO_FILE nicht gefunden! Verwende 'Light'-Version."
+        LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Fallback auf Light 
+      fi  
+    fi
+  else  # Normaler Modus mit PNG-Logos
+    LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
+    EXT='png'  # Erweiterung der Logo-Datei   
+  fi
+  [[ ! -e "$LOGO_FILE" ]] && { f_log "!!> Logo nicht gefunden! (${LOGO_FILE})" ; return ;}
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
     if [[ "${TOLOWER:-ALL}" == 'ALL' ]] ; then
-      channel="${channel,,}.png"       # Alles in kleinbuchstaben und mit .png
+      channel="${channel,,}.${EXT}"     # Alles in kleinbuchstaben und mit .png
     else
-      channel="${channel,,[A-Z]}.png"  # Nur A-Z in kleinbuchsaben
+      channel="${channel,,[A-Z]}.${EXT}"  # Nur A-Z in kleinbuchsaben
     fi
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen

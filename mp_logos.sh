@@ -21,7 +21,6 @@ VERSION=200504
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
 printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
-#TEMPDIR=$(mktemp --directory)          # Temp-Dir im RAM
 
 ### Funktionen
 f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
@@ -30,7 +29,7 @@ f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
 }
 
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
-  local CHANNEL_PATH EXT LOGO_FILE
+  local CHANNEL_PATH EXT='png' LOGO_FILE
   for var in FILE CHANNEL[*] MODE ; do
     [[ -z "${!var}" ]] && { f_log "Fehler: Variable $var ist nicht gesetzt!" ; exit 1 ;}
   done
@@ -47,7 +46,6 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     fi
   else  # Normaler Modus mit PNG-Logos
     LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
-    EXT='png'  # Erweiterung der Logo-Datei   
   fi
   [[ ! -e "$LOGO_FILE" ]] && { f_log "!!> Logo nicht gefunden! (${LOGO_FILE})" ; return ;}
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
@@ -105,7 +103,7 @@ if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
   done
   if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde nicht gefunden
     f_log "Fehler! Keine Konfigurationsdatei gefunden! \"${CONFIG_DIRS[*]}\")" >&2
-    #f_help
+    exit 1
   fi
 fi
 
@@ -116,8 +114,8 @@ if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Var
   LOGO_VARIANT='Light'  # Vorgabewert setzen
 fi
 LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
-[[ ! -e "$MP_LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${MP_LOGODIR})" ; exit 1 ;}
-[[ ! -e "$LOGODIR" ]] && { f_log "==> Logo-Dir fehlt! (${LOGODIR})" ; exit 1 ;}
+[[ ! -e "$MP_LOGODIR" ]] && { f_log "==> Logo-Ordner (GIT) fehlt! (${MP_LOGODIR})" ; exit 1 ;}
+[[ ! -e "$LOGODIR" ]] && { f_log "==> Logo-Ordner fehlt! (${LOGODIR})" ; exit 1 ;}
 
 # Kanallogos (GIT) aktualisieren
 cd "$MP_LOGODIR" || exit 1

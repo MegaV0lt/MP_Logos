@@ -1,6 +1,7 @@
 ########################### KONFIGURATION zum MP_LOGOS Skript ###########################
 #
-# Alle Anpassungen zum Skript, kann man hier und im Skript am Anfang der Datei nachlesen.
+# Alle Einstellungen zum Skript werden hier eingetragen. Diese Datei (mp_logos.conf) am 
+# besten nach ~/etc kopieren. Das Skript findet sie dann automatisch.
 #
 #########################################################################################
 

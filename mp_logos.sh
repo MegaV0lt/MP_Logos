@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200504
+VERSION=200516
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -102,7 +102,7 @@ if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
     fi
   done
   if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde nicht gefunden
-    f_log "Fehler! Keine Konfigurationsdatei gefunden! \"${CONFIG_DIRS[*]}\")" >&2
+    f_log "Fehler! Keine Konfigurationsdatei gefunden! (\"${CONFIG_DIRS[*]}\")" >&2
     exit 1
   fi
 fi

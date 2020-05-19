@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200516
+VERSION=200519
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -36,13 +36,13 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   if [[ "$USE_SVG" == 'true' ]] ; then  # Die Originalen *.svg-Logos verwenden
     EXT='svg'  # Erweiterung der Logo-Datei
     if [[ "$LOGO_VARIANT" =~ 'Light' ]] ; then
-      LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Light 
+      LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Light
     else
       LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*} - Dark.${EXT}"  # Dark
-      if [[ ! -e "$LOGO_FILE" ]] ; then 
+      if [[ ! -e "$LOGO_FILE" ]] ; then
         f_log "==> Logo $LOGO_FILE nicht gefunden! Verwende 'Light'-Version."
-        LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Fallback auf Light 
-      fi  
+        LOGO_FILE="${MP_LOGODIR}/${MODE}/${FILE%.*}.${EXT}"  # Fallback auf Light
+      fi
     fi
   else  # Normaler Modus mit PNG-Logos
     LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
@@ -51,14 +51,14 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
     channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
     if [[ "${TOLOWER:-ALL}" == 'ALL' ]] ; then
-      channel="${channel,,}.${EXT}"     # Alles in kleinbuchstaben und mit .png
+      channel="${channel,,}.${EXT}"    # Alles in kleinbuchstaben und mit .png
     else
       channel="${channel,,[A-Z]}.${EXT}"  # Nur A-Z in kleinbuchsaben
     fi
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
         CHANNEL_PATH="${channel%%/*}"  # Der Teil vor dem lezten /
-        mkdir --parent "${LOGODIR}/${CHANNEL_PATH}"
+        mkdir --parents "${LOGODIR}/${CHANNEL_PATH}"
       fi
       f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
       rm "${LOGODIR}/${channel}" &>/dev/null
@@ -124,10 +124,12 @@ git pull >> "${LOGFILE:-/dev/null}"
 [[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 
 mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
-mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
-for i in "${!channelsconf[@]}" ; do
-  channelsconf[i]="${channelsconf[i]%%;*}"  # Nur den Kanalnamen
-done
+if [[ -n "$CHANNELSCONF" ]] ; then
+  mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
+  for i in "${!channelsconf[@]}" ; do
+    channelsconf[i]="${channelsconf[i]%%;*}"  # Nur den Kanalnamen
+  done
+fi
 shopt -s extglob
 
 for line in "${mapping[@]}" ; do
@@ -135,14 +137,16 @@ for line in "${mapping[@]}" ; do
     *'<TV>'*) MODE='TV' ;;                     # TV
     *'<Radio>'*) MODE='Radio' ;;               # Radio
     *'<Channel>'*)                             # Neuer Kanal
-      unset -v 'ITEM_NOPROV' 'ITEM' 'PROVIDER' 'FILE'
+      unset -v 'ITEM_NOPROV' 'ITEM' 'PROVIDER' 'FILE' 'CHANNEL'
     ;;
     *'Item'*'/>'*)                             # Item (Kanal) ohne Provider
       ITEM_NOPROV="${line#*Name=\"}" ; ITEM_NOPROV="${ITEM_NOPROV%\"*}"
-      if f_element_in "$ITEM_NOPROV" "${channelsconf[@]}" ; then
-        CHANNEL+=("$ITEM_NOPROV")              # Kanal zur Liste
-        ((NOPROV+=1))
+      if [[ -n "$CHANNELSCONF" ]] ; then
+        if f_element_in "$ITEM_NOPROV" "${channelsconf[@]}" ; then
+          CHANNEL+=("$ITEM_NOPROV") ; ((NOPROV+=1))  # Kanal zur Liste
+        fi
       fi
+      [[ -z "$PROV" ]] && CHANNEL+=("$ITEM_NOPROV")  # Provider nicht gesetzt
     ;;
     *'Item Name'*'">'*)                        # Item (Kanal)
       ITEM="${line#*Name=\"}" ; ITEM="${ITEM%\"*}"
@@ -161,7 +165,6 @@ for line in "${mapping[@]}" ; do
       else
         f_process_channellogo                  # Logo verlinken
       fi
-      unset -v 'CHANNEL'
     ;;
     *) ;;
   esac
@@ -170,14 +173,12 @@ done
 find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
 [[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
-f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
+[[ -n "$CHANNELSCONF" ]] &&f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE")"
   [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"
 fi
-
-#rm -rf "$TEMPDIR"
 
 exit

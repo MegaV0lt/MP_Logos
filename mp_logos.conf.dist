@@ -32,6 +32,7 @@ MAPPING='LogoMapping.xml'
 PROV='Astra 19.2E'                     # Siehe LogoMapping.xml
 
 # Kanalliste vom VDR. Wird für Kanäle verwendet, die keinem Provider zugeornet sind
+# Wenn die Kanalliste nicht verwendet werden soll, dann bitte auskommentieren
 CHANNELSCONF='/etc/vdr/channels.conf'  # VDR's Kanalliste
 
 # Ausgaben des Skripts via logger oder echo, wenn die Variable auskommentiert ist

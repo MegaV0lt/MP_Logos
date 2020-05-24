@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200522
+VERSION=200524
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -20,7 +20,7 @@ VERSION=200522
 ### Variablen
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
-printf -v RUNDATE '%(%d.%m.%Y %R)T' -1 # Aktuelles Datum und Zeit
+printf -v RUNDATE '%(%d.%m.%Y %R)T' -1  # Aktuelles Datum und Zeit
 
 ### Funktionen
 f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
@@ -127,9 +127,7 @@ git pull >> "${LOGFILE:-/dev/null}"
 mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
 if [[ -n "$CHANNELSCONF" ]] ; then
   mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
-  for i in "${!channelsconf[@]}" ; do
-    channelsconf[i]="${channelsconf[i]%%;*}"  # Nur den Kanalnamen
-  done
+  channelsconf=("${channelsconf[@]%%;*}")    # Nur den Kanalnamen
 fi
 shopt -s extglob
 
@@ -174,7 +172,7 @@ done
 find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
 [[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
-[[ -n "$CHANNELSCONF" ]] &&f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden und verlinkt"
+[[ -n "$CHANNELSCONF" ]] && f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 SCRIPT_TIMING[2]=$SECONDS  # Zeit nach der Statistik
 SCRIPT_TIMING[10]=$((SCRIPT_TIMING[2] - SCRIPT_TIMING[0]))  # Gesamt

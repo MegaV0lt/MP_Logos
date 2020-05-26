@@ -58,11 +58,13 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
         CHANNEL_PATH="${channel%/*}"   # Der Teil vor dem lezten /
-        mkdir --parents "${LOGODIR}/${CHANNEL_PATH}"
+        mkdir --parents "${LOGODIR}/${CHANNEL_PATH}" || \
+          { f_log "Fehler: Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\"konnte nicht erstellt werden!" ; continue ;}
       fi
       f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
-      rm "${LOGODIR}/${channel}" &>/dev/null
-      ln --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}"  # Symlink erstellen
+      # Symlink erstellen (--force überschreibt bereits existierenen Link)
+      ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
+        { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\"konnte nicht erstellt werden!" ; continue ;}
     fi
   done
 }
@@ -177,7 +179,7 @@ f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Log
 SCRIPT_TIMING[2]=$SECONDS  # Zeit nach der Statistik
 SCRIPT_TIMING[10]=$((SCRIPT_TIMING[2] - SCRIPT_TIMING[0]))  # Gesamt
 f_log "==> Skriptlaufzeit: $((SCRIPT_TIMING[10] / 60)) Minute(n) und $((SCRIPT_TIMING[10] % 60)) Sekunde(n)"
-      
+
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE")"
   [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"

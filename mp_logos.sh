@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200526
+VERSION=200604
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -59,12 +59,12 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
         CHANNEL_PATH="${channel%/*}"   # Der Teil vor dem lezten /
         mkdir --parents "${LOGODIR}/${CHANNEL_PATH}" || \
-          { f_log "Fehler: Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\"konnte nicht erstellt werden!" ; continue ;}
+          { f_log "Fehler: Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\" konnte nicht erstellt werden!" ; continue ;}
       fi
       f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
       # Symlink erstellen (--force überschreibt bereits existierenen Link)
       ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
-        { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\"konnte nicht erstellt werden!" ; continue ;}
+        { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
     fi
   done
 }
@@ -76,7 +76,6 @@ f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durch
 
 ### Start
 SCRIPT_TIMING[0]=$SECONDS  # Startzeit merken (Sekunden)
-f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
 
 # Testen, ob Konfiguration angegeben wurde (-c …)
 while getopts ":c:" opt ; do
@@ -105,11 +104,12 @@ if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde noch nicht geladen
     fi
   done
   if [[ -z "$CONFLOADED" ]] ; then  # Konfiguration wurde nicht gefunden
-    f_log "Fehler! Keine Konfigurationsdatei gefunden! (\"${CONFIG_DIRS[*]}\")" >&2
+    f_log "Fehler! Keine Konfigurationsdatei gefunden! (\"${CONFIG_DIRS[*]}\")"
     exit 1
   fi
 fi
 
+f_log "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
 f_log "$CONFLOADED Konfiguration: ${CONFIG}"
 if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Variable
   f_log "!!!> Variable LOGO_VARIANT mit veralteten Wert 'Simple'!"

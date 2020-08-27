@@ -1,0 +1,38 @@
+MP_Logos.sh - Skript für Linux Bash
+Author: MegaV0lt
+
+Skript um Mediaportal-Kanallogos mit dem VDR zu verwenden
+
+Alle Anpassungen werden in der mp_logos.conf vorgenommen.
+Wer sich erkenntlich zeigen möchte, kann mir gerne einen kleinen Betrag zukommen
+lassen: => http://paypal.me/SteBlo
+Der Betrag kann frei gewählt werden. Vorschlag: 2 EUR
+
+Das Skript benötigt "Bash" ab Version 4. Zusätzlich noch: find und git
+
+Installation vom GIT:
+
+- GIT herunter laden:
+  Im Terminal folgende Befehle ausführen:
+  cd /usr/local/src
+  git co https://github.com/MegaV0lt/MP_Logos.git MP_Logos-git
+
+- Skript verlinken und *.conf kopieren
+  cd MP_Logos-git
+  ln -s MP_Logos.sh /usr/local/sbin/MP_Logos.sh
+  cp MP_Logos.conf.dist /usr/local/sbin/MP_Logos.conf
+
+- MP_Logos.conf anpassen
+  Die *.conf auf die eigenen Bedürfnisse anpassen.
+  Beispiele sind enthalten.
+
+Update vom GIT:
+  Im Terminal folgende Befehle ausführen:
+  cd /usr/local/src/MP_Logos-git
+  git pull
+
+
+Hinweise:
+
+Man kann dem Skript auch eine andere *.conf übergeben. Beispiel:
+  /usr/local/sbin/MP_Logos.sh -c MeineConfig.conf

@@ -20,7 +20,7 @@ Installation vom GIT:
 - Skript verlinken und *.conf kopieren
   cd MP_Logos-git
   ln -s MP_Logos.sh /usr/local/sbin/MP_Logos.sh
-  cp MP_Logos.conf.dist /usr/local/sbin/MP_Logos.conf
+  cp MP_Logos.conf.dist /etc/MP_Logos.conf
 
 - MP_Logos.conf anpassen
   Die *.conf auf die eigenen Bedürfnisse anpassen.

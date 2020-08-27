@@ -10,10 +10,13 @@ Die Dateinamen passen nicht zum VDR-Schema. Darum liest das Skript die im GIT li
 Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor. 
 
 Alle Einstellungen erfolgen in der *.conf. Eine Beispieldatei ligt bei (Umbenennen nach *.conf).
+
 Die Konfigurationsdatei wird erwartet entweder im Skrptverzeichnis, im aktuellen Verzeichnis oder im eigenen /etc
+
 Empfohen ist, die mp_logos.conf.dist nach ~/etc/mp_logos.conf zu kopieren.
-[cp mp_logos.conf.dist ~/etc/mp_logos.conf] (Eventuel muss ~/etc mit 'mkdir ~/etc'angelegt werden)
+
 Wenn das Skript via cron.weekly ausgeführt wird, kann es sein, dass die Varible 'HOME' auf '/' gesetzt wird. In dem Fall die Konfiguration nach /etc kopieren, bzw. zusätzlich verlinken.
+
 Es _müssen_ die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden. Wenn keine Logdatei gewünscht, einfach 'LOGFILE' auskommentieren.
 Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly).
 

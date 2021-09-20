@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=200604
+VERSION=210920
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -20,12 +20,23 @@ VERSION=200604
 ### Variablen
 SELF="$(readlink /proc/$$/fd/255)" || SELF="$0"  # Eigener Pfad (besseres $0)
 SELF_NAME="${SELF##*/}"
-printf -v RUNDATE '%(%d.%m.%Y %R)T' -1  # Aktuelles Datum und Zeit
+SELF_PATH="${SELF%/*}"
+msgERR='\e[1;41m FEHLER! \e[0;1m' ; nc='\e[0m'   # Anzeige "FEHLER!"
+msgINF='\e[42m \e[0m' ; msgWRN='\e[103m \e[0m'   # " " mit grünem/gelben Hintergrund
+printf -v RUNDATE '%(%d.%m.%Y %R)T' -1           # Aktuelles Datum und Zeit
 
 ### Funktionen
-f_log() {     # Gibt die Meldung auf der Konsole und im Syslog aus
-  [[ -n "$LOGGER" ]] && { "$LOGGER" --stderr --tag "$SELF_NAME" "$*" ;} || echo "$*"
-  [[ -n "$LOGFILE" ]] && echo "$*" >> "$LOGFILE"  # Log in Datei
+f_log(){  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meldung.
+  local msg="${*:2}"
+  case "${1^^}" in
+    'ERR'*|'FATAL') [[ -t 2 ]] && { echo -e "$msgERR ${msg:-$1}${nc}" ;} \
+                      || logger --tag "$SELF_NAME" --priority user.err "$@" ;;
+    'WARN'*) [[ -t 1 ]] && { echo -e "$msgWRN ${msg:-$1}" ;} || logger --tag "$SELF_NAME" "$@" ;;
+    'DEBUG') [[ -t 1 ]] && { echo -e "\e[1m${msg:-$1}${nc}" ;} || logger --tag "$SELF_NAME" "$@" ;;
+    'INFO'*) [[ -t 1 ]] && { echo -e "$msgINF ${msg:-$1}" ;} || logger --tag "$SELF_NAME" "$@" ;;
+    *) [[ -t 1 ]] && { echo -e "$@" ;} || logger --tag "$SELF_NAME" "$@" ;;  # Nicht angegebene
+  esac
+  [[ -n "$LOGFILE" ]] && printf '%(%d.%m.%Y %T)T: %b\n' -1 "$*" 2>/dev/null >> "$LOGFILE"  # Log in Datei
 }
 
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
@@ -61,16 +72,40 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
         mkdir --parents "${LOGODIR}/${CHANNEL_PATH}" || \
           { f_log "Fehler: Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\" konnte nicht erstellt werden!" ; continue ;}
       fi
-      f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
-      # Symlink erstellen (--force überschreibt bereits existierenen Link)
-      ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
-        { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
+      if [[ "$USE_PLAIN_LOGO" == 'true' ]] ; then
+        f_log "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
+        # Symlink erstellen (--force überschreibt bereits existierenen Link)
+        ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
+          { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
+      else
+        f_convert_logo "$LOGO_FILE" "$channel"  # Logo konvertiern und verlinken
+      fi
     fi
   done
 }
 
-f_element_in () {  # Der Suchstring ist das erste Element; der Rest das zu durchsuchende Array
-  for e in "$@:2" ; do [[ "$e" = "$1" ]] && return 0 ; done
+f_convert_logo() {  # Logo konvertieren und verlinken
+  local LOGO_FILE="$1" channel="$2" logoname="${LOGO_FILE##*/}"
+
+  [[ "${LOGODIR}/logos/${logoname}" -nt "$LOGO_FILE" ]] && return 0  # Nur erstellen wenn neuer
+
+  # Hintergrund vorhanden?
+  if [[ ! -f "${SELF_PATH}/backgrounds/${resolution}/${background}.png" ]] ; then
+    f_log WARN "Hintergrund fehlt! (${SELF_PATH}/backgrounds/${resolution}/${background}.png)"
+  fi
+
+  # Erstelle Logo mit Hintergrund
+  convert "${SELF_PATH}/backgrounds/${resolution}/${background}.png" \
+    \( "$LOGO_FILE" -background none -bordercolor none -border 100 -trim -border 1% -resize "$resize" -gravity center -extent "$resolution" +repage \) \
+    -layers merge - 2>> "$LOGFILE" \
+    | "$pngquant" - 2>> "$LOGFILE" > "${LOGODIR}/logos/${logoname}"
+
+  ln --force --symbolic "${LOGODIR}/logos/${logoname}" "${LOGODIR}/${channel}" || \
+    { f_log "Fehler: Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; return 1 ;}
+}
+
+f_element_in() {  # Der Suchstring ist das erste Element; der Rest das zu durchsuchende Array
+  for e in "$@:2" ; do [[ "$e" == "$1" ]] && return 0 ; done
   return 1
 }
 
@@ -125,6 +160,38 @@ cd "$MP_LOGODIR" || exit 1
 git pull >> "${LOGFILE:-/dev/null}"
 
 [[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log "Fehler: Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
+
+if [[ -z "${LOGO_CONF[*]}" ]] ; then
+  USE_PLAIN_LOGO='true'
+else
+  [[ ! -d "${LOGODIR}/logos" ]] && { mkdir --parents "${LOGODIR}/logos" || exit 1 ;}
+  resolution="${LOGO_CONF[0]:=220x132}"  # Hintergrundgröße
+  resize="${LOGO_CONF[1]:=200x112}"      # Logogröße
+  #type="${LOGO_CONF[2]:=dark}"           # Typ (dark/light)
+  background="${LOGO_CONF[3]:=transparent}"  # Hintergrund (transparent/blue/...)
+  if command -v pngquant &>/dev/null ; then
+    pngquant='pngquant'
+    f_log INFO 'Bildkomprimierung aktiviert!'
+  else
+    pngquant='cat'
+    f_log WARN 'Bildkomprimierung deaktiviert! "pngquant" installieren!'
+  fi
+
+  if command -v convert &>/dev/null ; then
+    f_log INFO 'ImageMagick gefunden!'
+  else
+    f_log ERROR 'ImageMagick nicht gefunden! "ImageMagick" installieren!'
+    exit 1
+  fi
+
+  #if command -v rsvg-convert &>/dev/null ; then
+  #  svgconverter=('rsvg-convert' -w 1000 --keep-aspect-ratio --output)
+  #  f_log INFO 'Verwende rsvg als SVG-Konverter!'
+  #else
+  #  f_log ERROR "SVG-Konverter: ${SVGCONVERTER} nicht gefunden!"
+  #  exit 1
+  #fi
+fi
 
 mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
 if [[ -n "$CHANNELSCONF" ]] ; then

@@ -40,10 +40,12 @@ f_log(){  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meld
 }
 
 f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanälen
-  local CHANNEL_PATH EXT='png' LOGO_FILE
+  local CHANNEL_PATH EXT='png' LOGO_FILE logoname
+
   for var in FILE CHANNEL[*] MODE ; do
     [[ -z "${!var}" ]] && { f_log ERR "Variable $var ist nicht gesetzt!" ; exit 1 ;}
   done
+
   if [[ "$USE_SVG" == 'true' ]] ; then  # Die Originalen *.svg-Logos verwenden
     EXT='svg'  # Erweiterung der Logo-Datei
     if [[ "$LOGO_VARIANT" =~ 'Light' ]] ; then
@@ -58,9 +60,11 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   else  # Normaler Modus mit PNG-Logos
     LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
   fi
+
   [[ ! -e "$LOGO_FILE" ]] && { f_log WARN "Logo nicht gefunden! (${LOGO_FILE})" ; return ;}
+
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
-    channel="${channel//\&amp;/\&}"    # HTML-Zeichen ersetzen
+    channel="${channel//'&amp;'/'&'}"  # HTML-Zeichen ersetzen
     if [[ "${TOLOWER:-ALL}" == 'ALL' ]] ; then
       channel="${channel,,}.${EXT}"    # Alles in kleinbuchstaben und mit .png
     else
@@ -72,20 +76,25 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
         mkdir --parents "${LOGODIR}/${CHANNEL_PATH}" || \
           { f_log ERR "Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\" konnte nicht erstellt werden!" ; continue ;}
       fi
+      ((N_LOGO+=1))
       if [[ "$USE_PLAIN_LOGO" == 'true' ]] ; then
-        f_log INFO "Verlinke neue Datei (${FILE}) mit $channel" ; ((N_LOGO+=1))
+        f_log INFO "Verlinke neue Datei (${FILE}) mit $channel"
         # Symlink erstellen (--force überschreibt bereits existierenen Link)
         ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
           { f_log ERR "Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
       else
-        f_convert_logo "$LOGO_FILE" "$channel"  # Logo konvertiern und verlinken
-      fi
+        logoname="${LOGO_FILE##*/}"
+        if f_convert_logo "$LOGO_FILE" "$channel" "$logoname" ; then  # Logo konvertieren und verlinken
+          ln --force --symbolic "${LOGODIR}/logos/${logoname}" "${LOGODIR}/${channel}" || \
+            { f_log ERR "Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
+        fi
+      fi  # USE_PLAIN_LOGO
     fi
   done
 }
 
-f_convert_logo() {  # Logo konvertieren und verlinken
-  local LOGO_FILE="$1" channel="$2" logoname="${LOGO_FILE##*/}"
+f_convert_logo() {  # Logo konvertieren
+  local LOGO_FILE="$1" channel="$2" logoname="$3"
 
   [[ "${LOGODIR}/logos/${logoname}" -nt "$LOGO_FILE" ]] && return 0  # Nur erstellen wenn neuer
 
@@ -100,9 +109,6 @@ f_convert_logo() {  # Logo konvertieren und verlinken
     \( "$LOGO_FILE" -background none -bordercolor none -border 100 -trim -border 1% -resize "$resize" -gravity center -extent "$resolution" +repage \) \
     -layers merge - 2>> "$LOGFILE" \
     | "$pngquant" - 2>> "$LOGFILE" > "${LOGODIR}/logos/${logoname}"
-
-  ln --force --symbolic "${LOGODIR}/logos/${logoname}" "${LOGODIR}/${channel}" || \
-    { f_log ERR "Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; return 1 ;}
 }
 
 f_element_in() {  # Der Suchstring ist das erste Element; der Rest das zu durchsuchende Array
@@ -122,8 +128,7 @@ while getopts ":c:" opt ; do
        else
          f_log ERR "Die angegebene Konfigurationsdatei fehlt! (\"${CONFIG}\")"
          exit 1
-       fi
-    ;;
+       fi ;;
     ?) ;;
   esac
 done
@@ -158,7 +163,8 @@ LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
 
 # Kanallogos (GIT) aktualisieren
 cd "$MP_LOGODIR" || exit 1
-git pull >> "${LOGFILE:-/dev/null}"
+f_log INFO "Aktualisiere ${MP_LOGODIR}…"
+git pull 2>> "${LOGFILE:-/dev/null}"
 
 [[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log ERR "Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 
@@ -166,10 +172,9 @@ if [[ -z "${LOGO_CONF[*]}" ]] ; then
   USE_PLAIN_LOGO='true'
 else
   [[ ! -d "${LOGODIR}/logos" ]] && { mkdir --parents "${LOGODIR}/logos" || exit 1 ;}
-  resolution="${LOGO_CONF[0]:=220x132}"  # Hintergrundgröße
-  resize="${LOGO_CONF[1]:=200x112}"      # Logogröße
-  #type="${LOGO_CONF[2]:=dark}"           # Typ (dark/light)
-  background="${LOGO_CONF[3]:=transparent}"  # Hintergrund (transparent/blue/...)
+  resolution="${LOGO_CONF[0]:=220x132}"      # Hintergrundgröße
+  resize="${LOGO_CONF[1]:=200x112}"          # Logogröße
+  background="${LOGO_CONF[2]:=transparent}"  # Hintergrund (transparent/blue/...)
   if command -v pngquant &>/dev/null ; then
     pngquant='pngquant'
     f_log INFO 'Bildkomprimierung aktiviert!'
@@ -184,20 +189,17 @@ else
     f_log ERROR 'ImageMagick nicht gefunden! "ImageMagick" installieren!'
     exit 1
   fi
-
-  #if command -v rsvg-convert &>/dev/null ; then
-  #  svgconverter=('rsvg-convert' -w 1000 --keep-aspect-ratio --output)
-  #  f_log INFO 'Verwende rsvg als SVG-Konverter!'
-  #else
-  #  f_log ERROR "SVG-Konverter: ${SVGCONVERTER} nicht gefunden!"
-  #  exit 1
-  #fi
 fi
 
 mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
 if [[ -n "$CHANNELSCONF" ]] ; then
-  mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
-  channelsconf=("${channelsconf[@]%%;*}")    # Nur den Kanalnamen
+  if [[ -f "$CHANNELSCONF" ]] ; then
+    mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
+    channelsconf=("${channelsconf[@]%%;*}")    # Nur den Kanalnamen
+  else
+    f_log WARN "$CHANNELSCONF nicht gefunden!"
+    unset -v 'CHANNELSCONF'
+  fi
 fi
 shopt -s extglob
 
@@ -242,7 +244,7 @@ done
 find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
 [[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
-[[ -n "$CHANNELSCONF" ]] && f_log "==> ${NOPROV:-0} Kanäle ohne Provider wurden in der Kanalliste gefunden"
+[[ -n "$CHANNELSCONF" && "$NOPROV" -gt 0 ]] && f_log "==> $NOPROV Kanäle ohne Provider wurden in der Kanalliste gefunden"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 SCRIPT_TIMING[2]=$SECONDS  # Zeit nach der Statistik
 SCRIPT_TIMING[10]=$((SCRIPT_TIMING[2] - SCRIPT_TIMING[0]))  # Gesamt

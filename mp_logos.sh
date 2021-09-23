@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=210921
+VERSION=210923
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -26,15 +26,15 @@ msgINF='\e[42m \e[0m' ; msgWRN='\e[103m \e[0m'   # " " mit grünem/gelben Hinter
 printf -v RUNDATE '%(%d.%m.%Y %R)T' -1           # Aktuelles Datum und Zeit
 
 ### Funktionen
-f_log(){  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meldung.
-  local msg="${*:2}"
+f_log() {  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meldung.
+  local logger="logger --tag $SELF_NAME" msg="${*:2}"
   case "${1^^}" in
     'ERR'*|'FATAL') [[ -t 2 ]] && { echo -e "$msgERR ${msg:-$1}${nc}" ;} \
-                      || logger --tag "$SELF_NAME" --priority user.err "$@" ;;
-    'WARN'*) [[ -t 1 ]] && { echo -e "$msgWRN ${msg:-$1}" ;} || logger --tag "$SELF_NAME" "$@" ;;
-    'DEBUG') [[ -t 1 ]] && { echo -e "\e[1m${msg:-$1}${nc}" ;} || logger --tag "$SELF_NAME" "$@" ;;
-    'INFO'*) [[ -t 1 ]] && { echo -e "$msgINF ${msg:-$1}" ;} || logger --tag "$SELF_NAME" "$@" ;;
-    *) [[ -t 1 ]] && { echo -e "$@" ;} || logger --tag "$SELF_NAME" "$@" ;;  # Nicht angegebene
+                      || "$logger" --priority user.err "$*" ;;
+    'WARN'*) [[ -t 1 ]] && { echo -e "$msgWRN ${msg:-$1}" ;} || "$logger" "$*" ;;
+    'DEBUG') [[ -t 1 ]] && { echo -e "\e[1m${msg:-$1}${nc}" ;} || "$logger" "$*" ;;
+    'INFO'*) [[ -t 1 ]] && { echo -e "$msgINF ${msg:-$1}" ;} || "$logger" "$*" ;;
+    *) [[ -t 1 ]] && { echo -e "$@" ;} || "$logger" "$*" ;;  # Nicht angegebene
   esac
   [[ -n "$LOGFILE" ]] && printf '%(%d.%m.%Y %T)T: %b\n' -1 "$*" 2>/dev/null >> "$LOGFILE"  # Log in Datei
 }
@@ -61,10 +61,9 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     LOGO_FILE="${MP_LOGODIR}/${MODE}/${LOGO_VARIANT}/${FILE}"
   fi
 
-  [[ ! -e "$LOGO_FILE" ]] && { f_log WARN "Logo nicht gefunden! (${LOGO_FILE})" ; return ;}
+  [[ ! -e "$LOGO_FILE" ]] && { f_log WARN "Logo nicht gefunden! (${LOGO_FILE}) [${CHANNEL[*]}]" ; return ;}
 
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
-    channel="${channel//'&amp;'/'&'}"  # HTML-Zeichen ersetzen
     if [[ "${TOLOWER:-ALL}" == 'ALL' ]] ; then
       channel="${channel,,}.${EXT}"    # Alles in kleinbuchstaben und mit .png
     else
@@ -109,10 +108,14 @@ f_convert_logo() {  # Logo konvertieren
     \( "$LOGO_FILE" -background none -bordercolor none -border 100 -trim -border 1% -resize "$resize" -gravity center -extent "$resolution" +repage \) \
     -layers merge - 2>> "$LOGFILE" \
     | "$pngquant" - 2>> "$LOGFILE" > "${LOGODIR}/logos/${logoname}"
+  [[ "${PIPESTATUS[0]}" -ne 0 ]] && return 1  # Fehler bei convert
 }
 
-f_element_in() {  # Der Suchstring ist das erste Element; der Rest das zu durchsuchende Array
-  for e in "$@:2" ; do [[ "$e" == "$1" ]] && return 0 ; done
+f_element_in() {  # $1: Der Suchstring; $2: Name des Arrays
+  local array="$2[@]" seeking="$1"
+  for element in "${!array}" ; do
+    [[ $element == "$seeking" ]] && return 0  # Element gefunden
+  done
   return 1
 }
 
@@ -195,7 +198,9 @@ mapfile -t mapping < "$MAPPING"  # Sender-Mapping in Array einlesen
 if [[ -n "$CHANNELSCONF" ]] ; then
   if [[ -f "$CHANNELSCONF" ]] ; then
     mapfile -t channelsconf < "$CHANNELSCONF"  # Kanalliste in Array einlesen
-    channelsconf=("${channelsconf[@]%%;*}")    # Nur den Kanalnamen
+    channelsconf=("${channelsconf[@]%%:*}")    # Nur den Kanal inkl. Provider und Kurzname
+    channelsconf=("${channelsconf[@]%%;*}")    # Nur den Kanalnamen mit Kurzname
+    channelsconf=("${channelsconf[@]%,*}")     # Kurznamen entfernen
   else
     f_log WARN "$CHANNELSCONF nicht gefunden!"
     unset -v 'CHANNELSCONF'
@@ -212,19 +217,23 @@ for line in "${mapping[@]}" ; do
     ;;
     *'Item'*'/>'*)                             # Item (Kanal) ohne Provider
       ITEM_NOPROV="${line#*Name=\"}" ; ITEM_NOPROV="${ITEM_NOPROV%\"*}"
-      if [[ -n "$CHANNELSCONF" ]] ; then
-        if f_element_in "$ITEM_NOPROV" "${channelsconf[@]}" ; then
+      ITEM_NOPROV="${ITEM_NOPROV//'&amp;'/'&'}"  # HTML-Zeichen ersetzen
+      if [[ -z "$PROV" ]] ; then
+        CHANNEL+=("$ITEM_NOPROV")  # Provider nicht gesetzt
+      elif [[ -n "$CHANNELSCONF" ]] ; then
+        if f_element_in "$ITEM_NOPROV" 'channelsconf' ; then
           CHANNEL+=("$ITEM_NOPROV") ; ((NOPROV+=1))  # Kanal zur Liste
-        fi
-      fi
-      [[ -z "$PROV" ]] && CHANNEL+=("$ITEM_NOPROV")  # Provider nicht gesetzt
+        fi  # f_element_in
+      fi  # PROV
     ;;
     *'Item Name'*'">'*)                        # Item (Kanal)
       ITEM="${line#*Name=\"}" ; ITEM="${ITEM%\"*}"
+      ITEM="${ITEM//'&amp;'/'&'}"              # HTML-Zeichen ersetzen
     ;;
     *'<Provider>'*)                            # Ein oder mehrere Provider
       PROVIDER="${line#*<Provider>}" ; PROVIDER="${PROVIDER%</Provider>*}"
       [[ "$PROVIDER" == "$PROV" || -z "$PROV" ]] && CHANNEL+=("$ITEM")
+
     ;;
     *'<File>'*)                                # Logo-Datei
       FILE="${line#*<File>}" ; FILE="${FILE%</File>*}"
@@ -243,7 +252,7 @@ done
 
 find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
-[[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV})"
+[[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV}) in LogoMapping.xml"
 [[ -n "$CHANNELSCONF" && "$NOPROV" -gt 0 ]] && f_log "==> $NOPROV Kanäle ohne Provider wurden in der Kanalliste gefunden"
 f_log "==> ${N_LOGO:-0} neue oder aktualisierte Kanäle verlinkt (Vorhandene Logos: ${LOGO})"
 SCRIPT_TIMING[2]=$SECONDS  # Zeit nach der Statistik

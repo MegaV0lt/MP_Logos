@@ -27,14 +27,14 @@ printf -v RUNDATE '%(%d.%m.%Y %R)T' -1           # Aktuelles Datum und Zeit
 
 ### Funktionen
 f_log() {  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meldung.
-  local logger="logger --tag $SELF_NAME" msg="${*:2}"
+  local logger=(logger --tag "$SELF_NAME") msg="${*:2}"
   case "${1^^}" in
     'ERR'*|'FATAL') [[ -t 2 ]] && { echo -e "$msgERR ${msg:-$1}${nc}" ;} \
-                      || "$logger" --priority user.err "$*" ;;
-    'WARN'*) [[ -t 1 ]] && { echo -e "$msgWRN ${msg:-$1}" ;} || "$logger" "$*" ;;
-    'DEBUG') [[ -t 1 ]] && { echo -e "\e[1m${msg:-$1}${nc}" ;} || "$logger" "$*" ;;
-    'INFO'*) [[ -t 1 ]] && { echo -e "$msgINF ${msg:-$1}" ;} || "$logger" "$*" ;;
-    *) [[ -t 1 ]] && { echo -e "$@" ;} || "$logger" "$*" ;;  # Nicht angegebene
+                      || "${logger[@]}" --priority user.err "$*" ;;
+    'WARN'*) [[ -t 1 ]] && { echo -e "$msgWRN ${msg:-$1}" ;} || "${logger[@]}" "$*" ;;
+    'DEBUG') [[ -t 1 ]] && { echo -e "\e[1m${msg:-$1}${nc}" ;} || "${logger[@]}" "$*" ;;
+    'INFO'*) [[ -t 1 ]] && { echo -e "$msgINF ${msg:-$1}" ;} || "${logger[@]}" "$*" ;;
+    *) [[ -t 1 ]] && { echo -e "$*" ;} || "${logger[@]}" "$*" ;;  # Nicht angegebene
   esac
   [[ -n "$LOGFILE" ]] && printf '%(%d.%m.%Y %T)T: %b\n' -1 "$*" 2>/dev/null >> "$LOGFILE"  # Log in Datei
 }

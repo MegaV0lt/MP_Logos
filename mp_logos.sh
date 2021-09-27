@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=210923
+VERSION=210927
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -119,6 +119,27 @@ f_element_in() {  # $1: Der Suchstring; $2: Name des Arrays
   return 1
 }
 
+f_self_update() {  # Automatisches Update
+  local BRANCH UPSTREAM
+  f_log INFO 'Starte Auto-Update…'
+  cd "$SELF_PATH" || exit 1
+  git fetch
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream})
+  if [[ -n "$(git diff --name-only "$UPSTREAM" "$SELF_NAME")" ]] ; then
+    f_log INFO "Neue Version von $SELF_NAME gefunden! Starte Update…"
+    git pull --force
+    git checkout "$BRANCH"
+    git pull --force || exit 1
+    f_log INFO "Starte $SELF_NAME neu…"
+    cd - || exit 1   # Zürück ins alte Arbeitsverzeichnisr
+    exec "$SELF" "$@"
+    exit 1  # Alte Version des Skripts beenden
+  else
+    f_log INFO 'OK. Bereits die aktuelle Version'
+  fi
+}
+
 ### Start
 SCRIPT_TIMING[0]=$SECONDS  # Startzeit merken (Sekunden)
 
@@ -155,6 +176,9 @@ fi
 
 f_log INFO "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
 f_log INFO "$CONFLOADED Konfiguration: ${CONFIG}"
+
+[[ "$AUTO_UPDATE" == 'true' ]] && f_self_update "$@"
+
 if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Variable
   f_log WARN "!!!> Variable LOGO_VARIANT mit veralteten Wert 'Simple'!"
   f_log WARN "!!!> Verwende den Vorgabewert 'Light'. Bitte Konfiguration anpassen!"

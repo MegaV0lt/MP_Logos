@@ -288,4 +288,4 @@ if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"
 fi
 
-exit
+exit 0

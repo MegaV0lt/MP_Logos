@@ -72,19 +72,19 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
         CHANNEL_PATH="${channel%/*}"   # Der Teil vor dem lezten /
-        mkdir --parents "${LOGODIR}/${CHANNEL_PATH}" || \
+        mkdir -p "${LOGODIR}/${CHANNEL_PATH}" || \
           { f_log ERR "Verzeichnis \"${LOGODIR}/${CHANNEL_PATH}\" konnte nicht erstellt werden!" ; continue ;}
       fi
       ((N_LOGO+=1))
       if [[ "$USE_PLAIN_LOGO" == 'true' ]] ; then
         f_log INFO "Verlinke neue Datei (${FILE}) mit $channel"
         # Symlink erstellen (--force überschreibt bereits existierenen Link)
-        ln --force --symbolic "$LOGO_FILE" "${LOGODIR}/${channel}" || \
+        ln -f -s "$LOGO_FILE" "${LOGODIR}/${channel}" || \
           { f_log ERR "Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
       else
         logoname="${LOGO_FILE##*/}"
         if f_convert_logo "$LOGO_FILE" "$channel" "$logoname" ; then  # Logo konvertieren und verlinken
-          ln --force --symbolic "${LOGODIR}/logos/${logoname}" "${LOGODIR}/${channel}" || \
+          ln -f -s "${LOGODIR}/logos/${logoname}" "${LOGODIR}/${channel}" || \
             { f_log ERR "Symbolischer Link \"${LOGODIR}/${channel}\" konnte nicht erstellt werden!" ; continue ;}
         fi
       fi  # USE_PLAIN_LOGO
@@ -285,7 +285,7 @@ f_log "==> Skriptlaufzeit: $((SCRIPT_TIMING[10] / 60)) Minute(n) und $((SCRIPT_T
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE")"
-  [[ $FILESIZE -gt $MAXLOGSIZE ]] && mv --force "$LOGFILE" "${LOGFILE}.old"
+  [[ ${FILESIZE:-102400} -gt $MAXLOGSIZE ]] && mv -f "$LOGFILE" "${LOGFILE}.old"  # --force
 fi
 
 exit 0

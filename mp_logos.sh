@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=220407
+VERSION=221220
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -284,7 +284,8 @@ SCRIPT_TIMING[10]=$((SCRIPT_TIMING[2] - SCRIPT_TIMING[0]))  # Gesamt
 f_log "==> Skriptlaufzeit: $((SCRIPT_TIMING[10] / 60)) Minute(n) und $((SCRIPT_TIMING[10] % 60)) Sekunde(n)"
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
-  FILESIZE="$(stat --format=%s "$LOGFILE")"
+  FILESIZE="$(stat --format=%s "$LOGFILE" 2>/dev/null)"
+  [[ -n "$FILESIZE" ]] && fs=($(wc -c "$LOGFILE" 2>/dev/null)) ; FILESIZE="${fs[0]}"
   [[ ${FILESIZE:-102400} -gt $MAXLOGSIZE ]] && mv -f "$LOGFILE" "${LOGFILE}.old"  # --force
 fi
 

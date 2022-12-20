@@ -285,7 +285,7 @@ f_log "==> Skriptlaufzeit: $((SCRIPT_TIMING[10] / 60)) Minute(n) und $((SCRIPT_T
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE" 2>/dev/null)"
-  [[ -n "$FILESIZE" ]] && fs=($(wc -c "$LOGFILE" 2>/dev/null)) ; FILESIZE="${fs[0]}"
+  [[ -n "$FILESIZE" ]] && { fs=($(wc -c "$LOGFILE" 2>/dev/null)) ; FILESIZE="${fs[0]}" ;}
   [[ ${FILESIZE:-102400} -gt $MAXLOGSIZE ]] && mv -f "$LOGFILE" "${LOGFILE}.old"  # --force
 fi
 

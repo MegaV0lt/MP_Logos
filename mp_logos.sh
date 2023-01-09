@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=230108
+VERSION=230109
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -24,6 +24,7 @@ SELF_PATH="${SELF%/*}"
 msgERR='\e[1;41m FEHLER! \e[0;1m' ; nc='\e[0m'   # Anzeige "FEHLER!"
 msgINF='\e[42m \e[0m' ; msgWRN='\e[103m \e[0m'   # " " mit grünem/gelben Hintergrund
 printf -v RUNDATE '%(%d.%m.%Y %R)T' -1           # Aktuelles Datum und Zeit
+LASTRUN='.lastrun'                               # Zum überprüfen, ob Konfiguration verändert wurde
 
 ### Funktionen
 f_log() {  # Logausgabe auf Konsole oder via Logger. $1 zum kennzeichnen der Meldung.
@@ -121,7 +122,7 @@ f_element_in() {  # $1: Der Suchstring; $2: Name des Arrays
 
 f_self_update() {  # Automatisches Update
   local BRANCH UPSTREAM
-  f_log INFO 'Starte Auto-Update von ${SELF_PATH}…'
+  f_log INFO "Starte Auto-Update von ${SELF_PATH}…"
   cd "$SELF_PATH" || exit 1
   git fetch
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -153,7 +154,7 @@ while getopts ":c:r" opt ; do
          f_log ERR "Die angegebene Konfigurationsdatei fehlt! (\"${CONFIG}\")"
          exit 1
        fi ;;
-    r) RESTARTED='true' ;;   
+    r) RESTARTED='true' ;;
     ?) ;;
   esac
 done
@@ -179,6 +180,13 @@ f_log INFO "==> $RUNDATE - $SELF_NAME #${VERSION} - Start..."
 f_log INFO "$CONFLOADED Konfiguration: ${CONFIG}"
 
 [[ "$AUTO_UPDATE" == 'true' && "$RESTARTED" != 'true' ]] && f_self_update "$@"
+
+# Prüfen, ob Konfiguration seit letztem Start verändert wurde
+if [[ "$CONFIG" -nt "${LOGODIR}/${LASTRUN}" ]] ; then
+  f_log WARN "Konfiguration $CONFIG wurde seit dem letzten Start verändert!"
+  f_log WARN "Lösche alle Dateien in ${LOGODIR}…"
+  rm -r -f "${LOGODIR:?}"/* || f_log ERR "Löschen von $LOGODIR nicht erfolgreich!"
+fi
 
 if [[ "${LOGO_VARIANT:=Light}" == 'Simple' ]] ; then  # Leere oder veraltete Variable
   f_log WARN "!!!> Variable LOGO_VARIANT mit veralteten Wert 'Simple'!"
@@ -275,7 +283,8 @@ for line in "${mapping[@]}" ; do
   esac
 done
 
-find "$LOGODIR" -xtype l -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
+touch "${LOGODIR}/${LASTRUN}"                  # Zeitpunkt der letzten Starts speichern
+find "$LOGODIR" -xtype l -print -delete >> "${LOGFILE:-/dev/null}"  # Alte (defekte) Symlinks löschen
 
 [[ -n "$PROV" ]] && f_log "==> ${NO_CHANNEL:-Keine} Kanäle ohne Provider (${PROV}) in LogoMapping.xml"
 [[ -n "$CHANNELSCONF" && "$NOPROV" -gt 0 ]] && f_log "==> $NOPROV Kanäle ohne Provider wurden in der Kanalliste gefunden"
@@ -286,7 +295,7 @@ f_log "==> Skriptlaufzeit: $((SCRIPT_TIMING[10] / 60)) Minute(n) und $((SCRIPT_T
 
 if [[ -e "$LOGFILE" ]] ; then       # Log-Datei umbenennen, wenn zu groß
   FILESIZE="$(stat --format=%s "$LOGFILE" 2>/dev/null)"
-  [[ -n "$FILESIZE" ]] && { fs=($(wc -c "$LOGFILE" 2>/dev/null)) ; FILESIZE="${fs[0]}" ;}
+  [[ -n "$FILESIZE" ]] && { read -r -a fs < <(wc -c "$LOGFILE" 2>/dev/null) ; FILESIZE="${fs[0]}" ;}
   [[ ${FILESIZE:-102400} -gt $MAXLOGSIZE ]] && mv -f "$LOGFILE" "${LOGFILE}.old"  # --force
 fi
 

@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=230109
+VERSION=231031
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -201,6 +201,8 @@ LOGO_VARIANT=".$LOGO_VARIANT"  # Anpassung an Ordnerstruktur im GIT
 cd "$MP_LOGODIR" || exit 1
 f_log INFO "Aktualisiere ${MP_LOGODIR}…"
 git pull 2>> "${LOGFILE:-/dev/null}"
+last_logo_update="$(git log -1 --date=format:"%d.%m.%Y %T" --format="%ad")"
+f_log INFO "Letztes Update der Logos: $last_logo_update"
 
 [[ ! -d "${MP_LOGODIR}/TV/${LOGO_VARIANT}" ]] && { f_log ERR "Ordner $LOGO_VARIANT fehlt!" ; exit 1 ;}
 

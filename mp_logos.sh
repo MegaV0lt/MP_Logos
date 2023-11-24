@@ -67,7 +67,7 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
       case "${TOLOWER^^}" in
       'A-Z') channel="${channel,,[A-Z]}.${EXT}" ;;  # Nur A-Z in kleinbuchsaben
-      'FALSE') ;;                                   # Nicht umwandeln
+      'FALSE') channel+=".${EXT}" ;;                # Nicht umwandeln
       *)     channel="${channel,,}.${EXT}" ;;       # Alles in kleinbuchstaben und mit .png
     esac
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then

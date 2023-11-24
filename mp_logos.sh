@@ -12,7 +12,7 @@
 # Die Logos liegen im PNG-Format und mit 190 Pixel Breite vor
 # Es müssen die Varialen 'LOGODIR' und 'MP_LOGODIR' angepasst werden.
 # Das Skript am besten ein mal pro Woche ausführen (/etc/cron.weekly)
-VERSION=231031
+VERSION=231124
 
 # Sämtliche Einstellungen werden in der *.conf vorgenommen.
 # ---> Bitte ab hier nichts mehr ändern! <---
@@ -65,11 +65,11 @@ f_process_channellogo() {  # Verlinken der Senderlogos zu den gefundenen Kanäle
   [[ ! -e "$LOGO_FILE" ]] && { f_log WARN "Logo nicht gefunden! (${LOGO_FILE}) [${CHANNEL[*]}]" ; return ;}
 
   for channel in "${CHANNEL[@]}" ; do  # Einem Logo können mehrere Kanäle zugeordnet sein
-    if [[ "${TOLOWER:-ALL}" == 'ALL' ]] ; then
-      channel="${channel,,}.${EXT}"    # Alles in kleinbuchstaben und mit .png
-    else
-      channel="${channel,,[A-Z]}.${EXT}"  # Nur A-Z in kleinbuchsaben
-    fi
+      case "${TOLOWER^^}" in
+      'A-Z') channel="${channel,,[A-Z]}.${EXT}"  # Nur A-Z in kleinbuchsaben
+      'FALSE') ;;                                # Nicht umwandeln
+      *)     channel="${channel,,}.${EXT}"       # Alles in kleinbuchstaben und mit .png
+    esac
     if [[ "$LOGO_FILE" -nt "${LOGODIR}/${channel}" ]] ; then
       if [[ "$channel" =~ / ]] ; then  # Kanal mit / im Namen
         CHANNEL_PATH="${channel%/*}"   # Der Teil vor dem lezten /

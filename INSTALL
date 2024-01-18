@@ -15,7 +15,7 @@ Installation vom GIT:
 - GIT herunter laden:
   Im Terminal folgende Befehle ausführen:
   cd /usr/local/src
-  git co https://github.com/MegaV0lt/MP_Logos.git MP_Logos-git
+  git clone https://github.com/MegaV0lt/MP_Logos.git MP_Logos-git
 
 - Skript verlinken und *.conf kopieren
   cd MP_Logos-git
